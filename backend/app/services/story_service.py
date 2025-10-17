@@ -6,7 +6,15 @@ from anthropic import Anthropic
 
 from app.models.story_request import StoryRequest
 from app.services.session_manager import SessionManager
-from app.api.routes.websocket import send_agent_update, send_progress_update, send_validation_results
+from app.api.routes.websocket import (
+    send_agent_update,
+    send_progress_update,
+    send_validation_results,
+    send_agent_prompt,
+    send_agent_response,
+    send_partial_draft,
+    send_validation_issue
+)
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -164,10 +172,35 @@ bring characters to life, and match the author's style consistently.
 Output only the story content in Markdown, starting with the title.
 """
 
+        # Send the prompt for transparency
+        await send_agent_prompt(
+            session_id,
+            "writer",
+            prompt,
+            reasoning="Requesting complete story draft following plot, characters, and style guide"
+        )
+
         draft = await self._call_anthropic(prompt, max_tokens=16000)
+        word_count = len(draft.split())
+
+        # Send partial draft (the full initial draft in this case)
+        await send_partial_draft(
+            session_id,
+            draft,
+            word_count,
+            progress_message=f"Initial draft completed: {word_count} words"
+        )
+
+        # Send the response for transparency
+        await send_agent_response(
+            session_id,
+            "writer",
+            draft[:1000] + "..." if len(draft) > 1000 else draft,  # Truncate for summary
+            summary=f"Generated {word_count}-word draft ({len(draft)} chars)"
+        )
 
         await self.session_manager.set_agent_status(session_id, "writer", "completed")
-        await send_agent_update(session_id, "writer", "completed", f"Draft complete ({len(draft.split())} words)")
+        await send_agent_update(session_id, "writer", "completed", f"Draft complete ({word_count} words)")
 
         return draft
 
@@ -289,8 +322,24 @@ Follow your instructions to create a comprehensive plot structure in JSON format
 Output ONLY valid JSON, no additional text.
 """
 
+        # Send the prompt for transparency
+        await send_agent_prompt(
+            session_id,
+            "plot-architect",
+            prompt,
+            reasoning="Requesting detailed 3-act structure based on user's plot idea"
+        )
+
         response = await self._call_anthropic(prompt, max_tokens=4000)
         plot_structure = self._extract_json(response)
+
+        # Send the response for transparency
+        await send_agent_response(
+            session_id,
+            "plot-architect",
+            response,
+            summary=f"Created structure with {len(plot_structure.get('act_1', {}))} act 1 elements, {len(plot_structure.get('act_2', {}))} act 2 elements"
+        )
 
         await self.session_manager.set_agent_status(session_id, "plot-architect", "completed")
         await send_agent_update(session_id, "plot-architect", "completed", "Plot structure created")
@@ -313,8 +362,24 @@ Follow your instructions to create comprehensive character profiles in JSON form
 Output ONLY valid JSON, no additional text.
 """
 
+        # Send the prompt for transparency
+        await send_agent_prompt(
+            session_id,
+            "character-designer",
+            prompt,
+            reasoning="Requesting character profiles that fit the plot and author style"
+        )
+
         response = await self._call_anthropic(prompt, max_tokens=4000)
         characters = self._extract_json(response)
+
+        # Send the response for transparency
+        await send_agent_response(
+            session_id,
+            "character-designer",
+            response,
+            summary=f"Created {len(characters.get('protagonist', {}))} protagonist(s), {len(characters.get('antagonist', {}))} antagonist(s), {len(characters.get('supporting', []))} supporting characters"
+        )
 
         await self.session_manager.set_agent_status(session_id, "character-designer", "completed")
         await send_agent_update(session_id, "character-designer", "completed", "Characters created")
@@ -335,7 +400,23 @@ Output ONLY valid JSON, no additional text.
 Follow your instructions to create a detailed style guide in Markdown format.
 """
 
+        # Send the prompt for transparency
+        await send_agent_prompt(
+            session_id,
+            "style-master",
+            prompt,
+            reasoning=f"Analyzing {request.author_style.value}'s writing style to create a guide for the writer"
+        )
+
         style_guide = await self._call_anthropic(prompt, max_tokens=3000)
+
+        # Send the response for transparency
+        await send_agent_response(
+            session_id,
+            "style-master",
+            style_guide,
+            summary=f"Created style guide for {request.author_style.value} ({len(style_guide)} chars)"
+        )
 
         await self.session_manager.set_agent_status(session_id, "style-master", "completed")
         await send_agent_update(session_id, "style-master", "completed", "Style guide created")
@@ -368,13 +449,34 @@ Follow your instructions and output a validation report in JSON format.
 Output ONLY valid JSON, no additional text.
 """
 
+        # Send the prompt for transparency
+        await send_agent_prompt(
+            session_id,
+            "consistency-validator",
+            prompt,
+            reasoning="Checking draft for plot holes, timeline issues, and inconsistencies"
+        )
+
         response = await self._call_anthropic(prompt, max_tokens=4000)
         validation_report = self._extract_json(response)
+
+        # Send individual issues for real-time visibility
+        issues = validation_report.get("issues", [])
+        for issue in issues:
+            await send_validation_issue(session_id, issue)
+
+        # Send the response for transparency
+        await send_agent_response(
+            session_id,
+            "consistency-validator",
+            response,
+            summary=f"Found {len(issues)} issues: {validation_report.get('summary', {})}"
+        )
 
         await self.session_manager.set_agent_status(session_id, "consistency-validator", "completed")
 
         status = validation_report.get("status", "UNKNOWN")
-        issues_count = len(validation_report.get("issues", []))
+        issues_count = len(issues)
         await send_agent_update(
             session_id,
             "consistency-validator",
@@ -406,8 +508,25 @@ Follow your instructions and output a critique report in JSON format.
 Output ONLY valid JSON, no additional text.
 """
 
+        # Send the prompt for transparency
+        await send_agent_prompt(
+            session_id,
+            "literary-critic",
+            prompt,
+            reasoning="Evaluating draft across 6 quality dimensions (prose, character, structure, style, emotion, originality)"
+        )
+
         response = await self._call_anthropic(prompt, max_tokens=4000)
         critique_report = self._extract_json(response)
+
+        # Send the response for transparency
+        scores = critique_report.get("scores", {})
+        await send_agent_response(
+            session_id,
+            "literary-critic",
+            response,
+            summary=f"Scores: {scores}"
+        )
 
         await self.session_manager.set_agent_status(session_id, "literary-critic", "completed")
 
@@ -467,16 +586,43 @@ Follow your instructions and output the revised draft in Markdown format.
 Output only the story content, no meta-commentary.
 """
 
+        issues_count = len(validation_report.get("issues", []))
+        weak_scores = [k for k, v in critique_report.get("scores", {}).items() if v < settings.min_critic_score]
+
+        # Send the prompt for transparency
+        await send_agent_prompt(
+            session_id,
+            "editor",
+            prompt,
+            reasoning=f"Revising draft to fix {issues_count} validation issues and improve {len(weak_scores)} weak dimensions: {weak_scores}"
+        )
+
         revised_draft = await self._call_anthropic(prompt, max_tokens=16000)
+        revised_word_count = len(revised_draft.split())
+
+        # Send partial draft with revision
+        await send_partial_draft(
+            session_id,
+            revised_draft,
+            revised_word_count,
+            progress_message=f"Revision completed: {revised_word_count} words"
+        )
+
+        # Send the response for transparency
+        await send_agent_response(
+            session_id,
+            "editor",
+            revised_draft[:1000] + "..." if len(revised_draft) > 1000 else revised_draft,
+            summary=f"Revised draft: {revised_word_count} words, addressed {issues_count} issues"
+        )
 
         await self.session_manager.set_agent_status(session_id, "editor", "completed")
 
-        issues_fixed = len(validation_report.get("issues", []))
         await send_agent_update(
             session_id,
             "editor",
             "completed",
-            f"Fixed {issues_fixed} issues, improved weak sections"
+            f"Fixed {issues_count} issues, improved {len(weak_scores)} weak sections"
         )
 
         return revised_draft

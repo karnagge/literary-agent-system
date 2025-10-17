@@ -191,3 +191,101 @@ async def send_validation_results(
     }
 
     await broadcast_update(session_id, update)
+
+
+async def send_agent_prompt(
+    session_id: str,
+    agent_name: str,
+    prompt: str,
+    reasoning: str = None
+):
+    """
+    Send the prompt being sent to an agent (for transparency).
+
+    Args:
+        session_id: Session identifier
+        agent_name: Name of the agent
+        prompt: The prompt text being sent
+        reasoning: Optional reasoning about why this prompt was sent
+    """
+    update = {
+        "type": "agent_prompt",
+        "agent": agent_name,
+        "prompt": prompt,
+        "reasoning": reasoning,
+        "timestamp": asyncio.get_event_loop().time()
+    }
+
+    await broadcast_update(session_id, update)
+
+
+async def send_agent_response(
+    session_id: str,
+    agent_name: str,
+    response: str,
+    summary: str = None
+):
+    """
+    Send the response received from an agent.
+
+    Args:
+        session_id: Session identifier
+        agent_name: Name of the agent
+        response: The full response from the LLM
+        summary: Optional summary of the response
+    """
+    update = {
+        "type": "agent_response",
+        "agent": agent_name,
+        "response": response,
+        "message": summary,
+        "timestamp": asyncio.get_event_loop().time()
+    }
+
+    await broadcast_update(session_id, update)
+
+
+async def send_partial_draft(
+    session_id: str,
+    partial_content: str,
+    word_count: int,
+    progress_message: str = None
+):
+    """
+    Send partial draft content as it's being written.
+
+    Args:
+        session_id: Session identifier
+        partial_content: Partial story content
+        word_count: Current word count
+        progress_message: Optional progress message
+    """
+    update = {
+        "type": "partial_draft",
+        "partial_content": partial_content,
+        "word_count": word_count,
+        "message": progress_message,
+        "timestamp": asyncio.get_event_loop().time()
+    }
+
+    await broadcast_update(session_id, update)
+
+
+async def send_validation_issue(
+    session_id: str,
+    issue: Dict
+):
+    """
+    Send individual validation issue as it's found.
+
+    Args:
+        session_id: Session identifier
+        issue: Validation issue dict
+    """
+    update = {
+        "type": "validation_issue",
+        "issue": issue,
+        "timestamp": asyncio.get_event_loop().time()
+    }
+
+    await broadcast_update(session_id, update)

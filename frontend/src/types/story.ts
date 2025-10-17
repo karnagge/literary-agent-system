@@ -106,7 +106,7 @@ export interface Session {
 }
 
 export interface WebSocketMessage {
-  type: "connection" | "update" | "agent_update" | "progress" | "validation" | "broadcast" | "final" | "error";
+  type: "connection" | "update" | "agent_update" | "progress" | "validation" | "broadcast" | "final" | "error" | "agent_response" | "partial_draft" | "validation_issue" | "agent_prompt";
   status?: string;
   session_id?: string;
   message?: string;
@@ -120,6 +120,13 @@ export interface WebSocketMessage {
   critique?: CritiqueReport;
   error?: string;
   timestamp?: number;
+  // New fields for transparency
+  prompt?: string;
+  response?: string;
+  partial_content?: string;
+  word_count?: number;
+  issue?: ValidationIssue;
+  reasoning?: string;
 }
 
 export interface AgentUpdate {
@@ -127,4 +134,9 @@ export interface AgentUpdate {
   status: "starting" | "running" | "completed" | "failed";
   message?: string;
   timestamp: number;
+  // New fields for detailed visibility
+  prompt?: string;
+  response?: string;
+  reasoning?: string;
+  expanded?: boolean;
 }
