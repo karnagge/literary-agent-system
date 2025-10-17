@@ -290,7 +290,7 @@ Output ONLY valid JSON, no additional text.
 """
 
         response = await self._call_anthropic(prompt, max_tokens=4000)
-        plot_structure = json.loads(response)
+        plot_structure = self._extract_json(response)
 
         await self.session_manager.set_agent_status(session_id, "plot-architect", "completed")
         await send_agent_update(session_id, "plot-architect", "completed", "Plot structure created")
@@ -314,7 +314,7 @@ Output ONLY valid JSON, no additional text.
 """
 
         response = await self._call_anthropic(prompt, max_tokens=4000)
-        characters = json.loads(response)
+        characters = self._extract_json(response)
 
         await self.session_manager.set_agent_status(session_id, "character-designer", "completed")
         await send_agent_update(session_id, "character-designer", "completed", "Characters created")
@@ -369,7 +369,7 @@ Output ONLY valid JSON, no additional text.
 """
 
         response = await self._call_anthropic(prompt, max_tokens=4000)
-        validation_report = json.loads(response)
+        validation_report = self._extract_json(response)
 
         await self.session_manager.set_agent_status(session_id, "consistency-validator", "completed")
 
@@ -407,7 +407,7 @@ Output ONLY valid JSON, no additional text.
 """
 
         response = await self._call_anthropic(prompt, max_tokens=4000)
-        critique_report = json.loads(response)
+        critique_report = self._extract_json(response)
 
         await self.session_manager.set_agent_status(session_id, "literary-critic", "completed")
 
@@ -480,6 +480,50 @@ Output only the story content, no meta-commentary.
         )
 
         return revised_draft
+
+    def _extract_json(self, response: str) -> Dict:
+        """
+        Extract JSON from response, handling markdown code blocks.
+
+        Args:
+            response: Raw response text
+
+        Returns:
+            Parsed JSON dict
+        """
+        # Try to parse directly first
+        try:
+            return json.loads(response)
+        except json.JSONDecodeError:
+            pass
+
+        # Try to extract from markdown code block
+        import re
+
+        # Look for ```json ... ``` or ``` ... ```
+        json_pattern = r'```(?:json)?\s*\n?(.*?)\n?```'
+        matches = re.findall(json_pattern, response, re.DOTALL)
+
+        if matches:
+            try:
+                return json.loads(matches[0])
+            except json.JSONDecodeError:
+                pass
+
+        # Try to find JSON-like content between { and }
+        json_pattern2 = r'\{.*\}'
+        matches2 = re.findall(json_pattern2, response, re.DOTALL)
+
+        if matches2:
+            for match in matches2:
+                try:
+                    return json.loads(match)
+                except json.JSONDecodeError:
+                    continue
+
+        # If all else fails, log and raise
+        logger.error(f"Failed to extract JSON from response: {response[:500]}")
+        raise json.JSONDecodeError("Could not extract valid JSON from response", response, 0)
 
     async def _call_anthropic(self, prompt: str, max_tokens: int = 4096) -> str:
         """
