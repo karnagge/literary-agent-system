@@ -7,6 +7,7 @@ import ProgressTracker from '@/components/ProgressTracker';
 import AgentActivity from '@/components/AgentActivity';
 import StoryViewer from '@/components/StoryViewer';
 import PartialDraftViewer from '@/components/PartialDraftViewer';
+import FullLogViewer from '@/components/FullLogViewer';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { api } from '@/lib/api';
 import { StoryRequest } from '@/types/story';
@@ -49,16 +50,19 @@ export default function Home() {
         <StoryForm onSubmit={handleGenerateStory} isLoading={isGenerating} />
       ) : (
         <>
-          {/* Progress and Agent Activity */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ProgressTracker
-              progress={progress}
-              phase={currentPhase}
-              iteration={currentIteration}
-              maxIterations={10}
-            />
-            <AgentActivity updates={agentUpdates} />
-          </div>
+          {/* Progress Tracker */}
+          <ProgressTracker
+            progress={progress}
+            phase={currentPhase}
+            iteration={currentIteration}
+            maxIterations={10}
+          />
+
+          {/* Agent Activity - Full Width for Better Visibility */}
+          <AgentActivity updates={agentUpdates} />
+
+          {/* Full Log Viewer - Detailed message log */}
+          {messages.length > 0 && <FullLogViewer messages={messages} />}
 
           {/* Partial Draft Viewer - Shows real-time content during generation */}
           {isGenerating && !finalStory && partialDraft && (
@@ -73,7 +77,7 @@ export default function Home() {
           {finalStory && <StoryViewer content={finalStory} />}
 
           {/* Loading State - Only show if no partial draft yet */}
-          {isGenerating && !finalStory && !partialDraft && (
+          {isGenerating && !finalStory && !partialDraft && agentUpdates.length === 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
               <div className="animate-pulse mb-2">
                 <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>

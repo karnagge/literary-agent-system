@@ -24,32 +24,39 @@ export function useWebSocket(sessionId: string | null) {
 
     ws.onmessage = (event) => {
       const message: WebSocketMessage = JSON.parse(event.data);
+      console.log('WebSocket message received:', message);
       setMessages((prev) => [...prev, message]);
 
+      // Handle broadcast messages (unwrap the data)
+      let actualMessage = message;
+      if (message.type === 'broadcast' && message.data) {
+        actualMessage = { ...message.data, type: message.data.type || message.type };
+      }
+
       // Handle agent_update: Basic status update
-      if (message.type === 'agent_update' && message.agent) {
+      if (actualMessage.type === 'agent_update' && actualMessage.agent) {
         setAgentUpdates((prev) => [
           ...prev,
           {
-            name: message.agent,
-            status: message.status as any,
-            message: message.message,
-            timestamp: message.timestamp || Date.now(),
+            name: actualMessage.agent,
+            status: actualMessage.status as any,
+            message: actualMessage.message,
+            timestamp: actualMessage.timestamp || Date.now(),
           },
         ]);
       }
 
       // Handle agent_prompt: Agent is about to send a prompt
-      if (message.type === 'agent_prompt' && message.agent) {
+      if (actualMessage.type === 'agent_prompt' && actualMessage.agent) {
         setAgentUpdates((prev) => {
           // Find the most recent update for this agent and enrich it
           const newUpdates = [...prev];
           for (let i = newUpdates.length - 1; i >= 0; i--) {
-            if (newUpdates[i].name === message.agent) {
+            if (newUpdates[i].name === actualMessage.agent) {
               newUpdates[i] = {
                 ...newUpdates[i],
-                prompt: message.prompt,
-                reasoning: message.reasoning,
+                prompt: actualMessage.prompt,
+                reasoning: actualMessage.reasoning,
               };
               break;
             }
@@ -59,15 +66,15 @@ export function useWebSocket(sessionId: string | null) {
       }
 
       // Handle agent_response: Agent received a response
-      if (message.type === 'agent_response' && message.agent) {
+      if (actualMessage.type === 'agent_response' && actualMessage.agent) {
         setAgentUpdates((prev) => {
           // Find the most recent update for this agent and enrich it
           const newUpdates = [...prev];
           for (let i = newUpdates.length - 1; i >= 0; i--) {
-            if (newUpdates[i].name === message.agent) {
+            if (newUpdates[i].name === actualMessage.agent) {
               newUpdates[i] = {
                 ...newUpdates[i],
-                response: message.response,
+                response: actualMessage.response,
               };
               break;
             }
@@ -77,22 +84,22 @@ export function useWebSocket(sessionId: string | null) {
       }
 
       // Handle partial_draft: Real-time draft content
-      if (message.type === 'partial_draft') {
+      if (actualMessage.type === 'partial_draft') {
         setPartialDraft({
-          content: message.partial_content || '',
-          wordCount: message.word_count || 0,
+          content: actualMessage.partial_content || '',
+          wordCount: actualMessage.word_count || 0,
         });
       }
 
       // Handle validation_issue: Individual issue found
-      if (message.type === 'validation_issue') {
-        console.log('Validation issue found:', message.issue);
+      if (actualMessage.type === 'validation_issue') {
+        console.log('Validation issue found:', actualMessage.issue);
         // You could add these to a separate state for display
       }
 
       // Handle progress updates
-      if (message.type === 'progress' && message.progress_percent !== undefined) {
-        setProgress(message.progress_percent);
+      if (actualMessage.type === 'progress' && actualMessage.progress_percent !== undefined) {
+        setProgress(actualMessage.progress_percent);
       }
     };
 

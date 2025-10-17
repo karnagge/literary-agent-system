@@ -44,17 +44,14 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             "message": "WebSocket connection established"
         })
 
-        # Start sending updates
+        # Keep connection alive and wait for completion
+        # The actual updates are sent via broadcast_update function
+        # which is called by story_service
         while True:
-            # Get latest session state from Redis
+            # Get latest session state from Redis to check completion
             session = await session_manager.get_session(session_id)
 
             if session:
-                await websocket.send_json({
-                    "type": "update",
-                    "data": session
-                })
-
                 # Check if story generation is complete
                 if session.get("status") in ["completed", "failed", "cancelled"]:
                     await websocket.send_json({
@@ -65,7 +62,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                     })
                     break
 
-            # Wait before next update (avoid spamming)
+            # Wait before checking status again
             await asyncio.sleep(2)
 
     except WebSocketDisconnect:
