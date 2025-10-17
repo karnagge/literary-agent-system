@@ -98,12 +98,24 @@ async def broadcast_update(session_id: str, update: Dict):
     if session_id in active_connections:
         try:
             websocket = active_connections[session_id]
-            await websocket.send_json({
-                "type": "broadcast",
-                "data": update
-            })
+            # Check if websocket is still open before sending
+            if websocket.client_state.name == "CONNECTED":
+                await websocket.send_json({
+                    "type": "broadcast",
+                    "data": update
+                })
+                logger.debug(f"Broadcast sent to {session_id}: {update.get('type', 'unknown')}")
+            else:
+                logger.warning(f"WebSocket for session {session_id} is not connected (state: {websocket.client_state.name})")
+                # Remove disconnected websocket
+                del active_connections[session_id]
         except Exception as e:
-            logger.error(f"Error broadcasting to session {session_id}: {e}")
+            logger.warning(f"Error broadcasting to session {session_id}: {e}")
+            # Remove failed connection
+            if session_id in active_connections:
+                del active_connections[session_id]
+    else:
+        logger.debug(f"No active WebSocket connection for session {session_id}")
 
 
 async def send_agent_update(

@@ -101,6 +101,12 @@ export function useWebSocket(sessionId: string | null) {
       if (actualMessage.type === 'progress' && actualMessage.progress_percent !== undefined) {
         setProgress(actualMessage.progress_percent);
       }
+
+      // Handle final message - but DON'T close the connection yet
+      if (actualMessage.type === 'final') {
+        console.log('Story generation completed:', actualMessage);
+        // Connection will be closed by the server
+      }
     };
 
     ws.onerror = (error) => {
@@ -113,7 +119,10 @@ export function useWebSocket(sessionId: string | null) {
     };
 
     return () => {
-      ws.close();
+      // Only close if the component is unmounting
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        ws.close();
+      }
     };
   }, [sessionId]);
 

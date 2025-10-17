@@ -165,6 +165,9 @@ class StoryGenerationService:
 - Target Audience: {request.target_audience.value}
 - Target Word Count: {request.word_count_target} words (±10%)
 - Author Style: {request.author_style.value}
+- **Language: PORTUGUESE (BRAZIL) - pt-BR**
+
+**CRITICAL: Write the ENTIRE story in BRAZILIAN PORTUGUESE (pt-BR). All narrative, dialogue, descriptions, and text must be in Portuguese from Brazil.**
 
 Write the complete story in Markdown format. Follow the plot structure precisely,
 bring characters to life, and match the author's style consistently.
@@ -317,6 +320,9 @@ Output only the story content in Markdown, starting with the title.
 **Genre:** {request.genre.value}
 **Target Audience:** {request.target_audience.value}
 **Target Word Count:** {request.word_count_target}
+**Language:** PORTUGUESE (BRAZIL) - pt-BR
+
+**IMPORTANT: Create the plot structure with all descriptions, scene descriptions, and notes in BRAZILIAN PORTUGUESE (pt-BR).**
 
 Follow your instructions to create a comprehensive plot structure in JSON format.
 Output ONLY valid JSON, no additional text.
@@ -357,6 +363,9 @@ Output ONLY valid JSON, no additional text.
 **Genre:** {request.genre.value}
 **Target Audience:** {request.target_audience.value}
 **Author Style:** {request.author_style.value}
+**Language:** PORTUGUESE (BRAZIL) - pt-BR
+
+**IMPORTANT: Create all character descriptions, backgrounds, motivations, and traits in BRAZILIAN PORTUGUESE (pt-BR).**
 
 Follow your instructions to create comprehensive character profiles in JSON format.
 Output ONLY valid JSON, no additional text.
@@ -396,6 +405,9 @@ Output ONLY valid JSON, no additional text.
 **Author:** {request.author_style.value}
 **Genre:** {request.genre.value}
 **Target Audience:** {request.target_audience.value}
+**Language:** PORTUGUESE (BRAZIL) - pt-BR
+
+**IMPORTANT: The style guide must specify that the story will be written in BRAZILIAN PORTUGUESE (pt-BR). Include notes about Portuguese language style, idioms, and expressions that {request.author_style.value} would use.**
 
 Follow your instructions to create a detailed style guide in Markdown format.
 """
@@ -581,6 +593,8 @@ Output ONLY valid JSON, no additional text.
 
 **Style Guide:**
 {style_guide}
+
+**CRITICAL: Maintain the ENTIRE revised story in BRAZILIAN PORTUGUESE (pt-BR). All edits, additions, and modifications must be in Portuguese from Brazil.**
 
 Follow your instructions and output the revised draft in Markdown format.
 Output only the story content, no meta-commentary.

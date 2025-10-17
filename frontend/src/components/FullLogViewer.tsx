@@ -106,46 +106,59 @@ export default function FullLogViewer({ messages }: FullLogViewerProps) {
                 <p className="text-sm">Nenhuma mensagem com este filtro</p>
               </div>
             ) : (
-              filteredMessages.map((message, index) => (
-                <details key={index} className={`border-2 rounded-lg overflow-hidden ${getMessageColor(message.type)}`}>
-                  <summary className="p-3 cursor-pointer hover:bg-opacity-50 transition-colors">
-                    <div className="flex items-start space-x-3">
-                      <span className="text-xl">{getMessageIcon(message.type)}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="font-bold text-gray-900">{message.type}</span>
-                            {message.agent && (
-                              <span className="ml-2 text-sm text-gray-600">
-                                → {message.agent}
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            {message.timestamp 
-                              ? new Date(message.timestamp * 1000).toLocaleTimeString('pt-BR')
-                              : new Date().toLocaleTimeString('pt-BR')}
-                          </span>
-                        </div>
-                        {message.message && (
-                          <p className="text-sm text-gray-700 mt-1">{message.message}</p>
-                        )}
-                        {message.phase && (
-                          <p className="text-xs text-gray-600 mt-1">
-                            Fase: {message.phase} | Iteração: {message.iteration}/{message.max_iterations}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </summary>
+              filteredMessages.map((message, index) => {
+                // If it's a broadcast, unwrap to get the actual message type and agent
+                const actualType = message.type === 'broadcast' && message.data 
+                  ? message.data.type 
+                  : message.type;
+                const actualAgent = message.type === 'broadcast' && message.data 
+                  ? message.data.agent 
+                  : message.agent;
+                const displayMessage = message.type === 'broadcast' && message.data 
+                  ? message.data.message 
+                  : message.message;
 
-                  <div className="bg-white p-4 border-t-2">
-                    <pre className="text-xs whitespace-pre-wrap break-words overflow-x-auto bg-gray-50 p-3 rounded">
-                      {JSON.stringify(message, null, 2)}
-                    </pre>
-                  </div>
-                </details>
-              ))
+                return (
+                  <details key={index} className={`border-2 rounded-lg overflow-hidden ${getMessageColor(actualType)}`}>
+                    <summary className="p-3 cursor-pointer hover:bg-opacity-50 transition-colors">
+                      <div className="flex items-start space-x-3">
+                        <span className="text-xl">{getMessageIcon(actualType)}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-bold text-gray-900">{actualType}</span>
+                              {actualAgent && (
+                                <span className="ml-2 text-sm text-gray-600">
+                                  → {actualAgent}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {message.timestamp 
+                                ? new Date(message.timestamp * 1000).toLocaleTimeString('pt-BR')
+                                : new Date().toLocaleTimeString('pt-BR')}
+                            </span>
+                          </div>
+                          {displayMessage && (
+                            <p className="text-sm text-gray-700 mt-1">{displayMessage}</p>
+                          )}
+                          {message.phase && (
+                            <p className="text-xs text-gray-600 mt-1">
+                              Fase: {message.phase} | Iteração: {message.iteration}/{message.max_iterations}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </summary>
+
+                    <div className="bg-white p-4 border-t-2">
+                      <pre className="text-xs whitespace-pre-wrap break-words overflow-x-auto bg-gray-50 p-3 rounded">
+                        {JSON.stringify(message, null, 2)}
+                      </pre>
+                    </div>
+                  </details>
+                );
+              })
             )}
           </div>
         </div>
